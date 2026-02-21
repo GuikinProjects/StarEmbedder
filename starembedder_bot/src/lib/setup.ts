@@ -2,7 +2,6 @@
 process.env.NODE_ENV ??= 'development';
 
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
-import '@sapphire/plugin-api/register';
 import '@sapphire/plugin-logger/register';
 import '@sapphire/plugin-subcommands/register';
 import { setup, type ArrayString } from '@skyra/env-utilities';
