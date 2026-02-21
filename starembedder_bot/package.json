@@ -6,6 +6,7 @@
   "license": "UNLICENSE",
   "type": "commonjs",
   "dependencies": {
+    "@kaname-png/plugin-subcommands-advanced": "^2.5.0",
     "@sapphire/decorators": "^6.2.0",
     "@sapphire/discord-utilities": "^4.0.0",
     "@sapphire/discord.js-utilities": "7.3.3",
