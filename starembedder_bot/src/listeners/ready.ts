@@ -2,10 +2,11 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
+import { Events } from 'discord.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 
-@ApplyOptions<Listener.Options>({ once: true })
+@ApplyOptions<Listener.Options>({ name: Events.ClientReady, once: true })
 export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
