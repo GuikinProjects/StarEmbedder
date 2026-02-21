@@ -9,17 +9,14 @@ const client = new SapphireClient({
 	},
 	shards: 'auto',
 	intents: [
-		GatewayIntentBits.DirectMessageReactions,
-		GatewayIntentBits.DirectMessages,
-		GatewayIntentBits.GuildModeration,
 		GatewayIntentBits.GuildExpressions,
 		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildVoiceStates
+		GatewayIntentBits.GuildMessages
 	],
-	partials: [Partials.Channel]
+	partials: [Partials.Channel, Partials.GuildMember, Partials.Message, Partials.Reaction, Partials.User]
 });
 
 const main = async () => {
