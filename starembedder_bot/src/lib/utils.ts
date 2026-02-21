@@ -1,38 +1,10 @@
-import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccessPayload, MessageCommandSuccessPayload } from '@sapphire/framework';
+import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccessPayload } from '@sapphire/framework';
 import { container } from '@sapphire/framework';
-import { send } from '@sapphire/plugin-editable-commands';
 import { cyan } from 'colorette';
-import { EmbedBuilder, type APIUser, type Guild, type Message, type User } from 'discord.js';
-import { RandomLoadingMessage } from './constants';
+import type { APIUser, Guild, User } from 'discord.js';
 
-/**
- * Picks a random item from an array
- * @param array The array to pick a random item from
- * @example
- * const randomEntry = pickRandom([1, 2, 3, 4]) // 1
- */
-export function pickRandom<T>(array: readonly T[]): T {
-	const { length } = array;
-	return array[Math.floor(Math.random() * length)];
-}
-
-/**
- * Sends a loading message to the current channel
- * @param message The message data for which to send the loading message
- */
-export function sendLoadingMessage(message: Message): Promise<typeof message> {
-	return send(message, { embeds: [new EmbedBuilder().setDescription(pickRandom(RandomLoadingMessage)).setColor('#FF0000')] });
-}
-
-export function logSuccessCommand(payload: ContextMenuCommandSuccessPayload | ChatInputCommandSuccessPayload | MessageCommandSuccessPayload): void {
-	let successLoggerData: ReturnType<typeof getSuccessLoggerData>;
-
-	if ('interaction' in payload) {
-		successLoggerData = getSuccessLoggerData(payload.interaction.guild, payload.interaction.user, payload.command);
-	} else {
-		successLoggerData = getSuccessLoggerData(payload.message.guild, payload.message.author, payload.command);
-	}
-
+export function logSuccessCommand(payload: ContextMenuCommandSuccessPayload | ChatInputCommandSuccessPayload): void {
+	const successLoggerData = getSuccessLoggerData(payload.interaction.guild, payload.interaction.user, payload.command);
 	container.logger.debug(`${successLoggerData.shard} - ${successLoggerData.commandName} ${successLoggerData.author} ${successLoggerData.sentAt}`);
 }
 
