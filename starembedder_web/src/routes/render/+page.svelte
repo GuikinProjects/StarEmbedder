@@ -22,7 +22,7 @@
 	// before Puppeteer's image-wait / settle ticks run.
 	$effect(() => {
 		const TAGS = new Set(['discord-image-attachment', 'discord-video-attachment']);
-		const STYLE = ':host { overflow: visible; border-radius: 0; } img { border-radius: 5px; }';
+		const STYLE = ':host { overflow: visible; border-radius: 0; } img { border-radius: 5px; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }';
 
 		function injectInto(el: Element) {
 			const root = el.shadowRoot;
