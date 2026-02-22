@@ -55,6 +55,38 @@
 		return () => observer.disconnect();
 	});
 
+	// Inject a style into the discord-reply shadow root to add spacing between the
+	// :host::before connector line's right end and the avatar, without shifting the avatar.
+	// The built-in margin-right is 4px; bumping it to 10px leaves a visible gap.
+	$effect(() => {
+		const REPLY_STYLE =
+			':host::before { margin-right: 5px !important; }';
+
+		function injectReplyStyle(el: Element) {
+			const root = el.shadowRoot;
+			if (!root || root.querySelector('style[data-star-reply]')) return;
+			const style = document.createElement('style');
+			style.setAttribute('data-star-reply', '');
+			style.textContent = REPLY_STYLE;
+			root.appendChild(style);
+		}
+
+		document.querySelectorAll('discord-reply').forEach(injectReplyStyle);
+
+		const observer = new MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				for (const node of mutation.addedNodes) {
+					if (!(node instanceof Element)) continue;
+					if (node.localName === 'discord-reply') injectReplyStyle(node);
+					node.querySelectorAll('discord-reply').forEach(injectReplyStyle);
+				}
+			}
+		});
+
+		observer.observe(document.body, { childList: true, subtree: true });
+		return () => observer.disconnect();
+	});
+
 	// Register clan icon URL into the component's icons map before Lit renders.
 	// The component has a bug (clanIcon === 'string' instead of typeof ... === 'string')
 	// so external URLs never render as <img> unless they're in the map as TemplateResults.
