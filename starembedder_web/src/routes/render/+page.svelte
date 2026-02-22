@@ -262,6 +262,12 @@
 		font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 	}
 
+	:global(img) {
+		max-width: 100%;
+		max-height: 100%;
+		object-fit: contain;
+	}
+
 	.wrapper {
 		width: 520px;
 		display: inline-block;
