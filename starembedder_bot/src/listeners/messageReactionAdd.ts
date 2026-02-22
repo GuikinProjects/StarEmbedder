@@ -328,9 +328,9 @@ export class MessageReactionAddListener extends Listener {
 
 					if (type === 'gifv') {
 						// gifv (Tenor etc): fetch the page to extract the actual animated GIF URL.
-						// Fall back to thumbnail if extraction fails.
+						// Fall back to thumbnail, then to the embed URL itself (covers direct CDN .gif links).
 						const tenorGif = e.url ? await resolveTenorGif(e.url) : null;
-						url = tenorGif ?? e.thumbnail?.url;
+						url = tenorGif ?? e.thumbnail?.url ?? e.url;
 						contentType = 'image/gif';
 						width = e.video?.width ?? e.thumbnail?.width ?? undefined;
 						height = e.video?.height ?? e.thumbnail?.height ?? undefined;
@@ -341,11 +341,14 @@ export class MessageReactionAddListener extends Listener {
 						height = e.video?.height ?? undefined;
 					} else {
 						// type === 'image'
-						url = e.image?.url;
+						// For Discord CDN auto-embeds, e.url is the image URL.
+						// Fall back to e.image.url or raw data if needed.
+						const rawData = e.data as { image?: { url?: string; width?: number; height?: number }; url?: string };
+						url = e.url ?? rawData.image?.url ?? e.image?.url;
 						const rawUrl = url ?? '';
 						contentType = /\.gif/i.test(rawUrl) ? 'image/gif' : 'image/webp';
-						width = e.image?.width ?? undefined;
-						height = e.image?.height ?? undefined;
+						width = rawData.image?.width ?? e.image?.width ?? undefined;
+						height = rawData.image?.height ?? e.image?.height ?? undefined;
 					}
 
 					if (url) {
