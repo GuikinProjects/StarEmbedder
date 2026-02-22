@@ -46,7 +46,7 @@ export async function screenshot(url: string): Promise<Buffer> {
 
 	try {
 		// Set a wide enough viewport at 4× for large, high-res output
-		await page.setViewport({ width: 800, height: 1600, deviceScaleFactor: 4 });
+		await page.setViewport({ width: 600, height: 1600, deviceScaleFactor: 4 });
 
 		await page.goto(url, { waitUntil: 'networkidle0', timeout: 15_000 });
 

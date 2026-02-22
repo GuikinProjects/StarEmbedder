@@ -214,7 +214,7 @@
 	}
 
 	.wrapper {
-		width: 700px;
+		width: 520px;
 		display: inline-block;
 		padding: 16px;
 		box-sizing: border-box;
