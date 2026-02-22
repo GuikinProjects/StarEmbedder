@@ -293,7 +293,7 @@ export class MessageReactionAddListener extends Listener {
 			.filter((r) => r.icon != null)
 			.sort((a, b) => b.position - a.position)
 			.first();
-		const roleIconUrl = iconRole?.iconURL({ size: 32, extension: 'png' }) ?? undefined;
+		const roleIconUrl = iconRole?.iconURL({ size: 128, extension: 'png' }) ?? undefined;
 		const roleName = iconRole?.name ?? undefined;
 
 		const pg = author.primaryGuild;
