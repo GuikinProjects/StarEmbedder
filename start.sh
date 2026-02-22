@@ -45,6 +45,11 @@ log "Installing web dependencies..."
 cd "$DIR/starembedder_web"
 $PKG install || fail "web install failed"
 
+# ── Install Puppeteer browsers ────────────────────────────────────────────────
+log "Installing Puppeteer browsers..."
+cd "$DIR/starembedder_web"
+npx puppeteer browsers install chrome || fail "puppeteer browsers install failed"
+
 # ── Database migrations ───────────────────────────────────────────────────────
 if [[ "${SKIP_MIGRATE}" != "1" ]]; then
     log "Running database migrations..."
