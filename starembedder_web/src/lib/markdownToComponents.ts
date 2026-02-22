@@ -137,18 +137,18 @@ function processInline(text: string, resolved: ResolvedMentions, jumbo = false):
 
 	// Unicode emoji jumbo: wrap in a sized span so they display large
 	if (jumbo) {
-		result = result.replace(/\p{Extended_Pictographic}(\u200D\p{Extended_Pictographic})*/gu, (emoji) => {
-			return `<span style="font-size:48px;line-height:1;vertical-align:middle;">${emoji}</span>`;
-		});
+		result = result.replace(
+			/\p{Extended_Pictographic}(\u200D\p{Extended_Pictographic})*/gu,
+			(emoji) => {
+				return `<span style="font-size:48px;line-height:1;vertical-align:middle;">${emoji}</span>`;
+			}
+		);
 	}
 
 	return result;
 }
 
-export function markdownToDiscordComponents(
-	markdown: string,
-	resolved: ResolvedMentions
-): string {
+export function markdownToDiscordComponents(markdown: string, resolved: ResolvedMentions): string {
 	const jumbo = detectJumbo(markdown);
 	const lines = markdown.split('\n');
 	const output: string[] = [];
@@ -201,10 +201,14 @@ export function markdownToDiscordComponents(
 
 		// Blockquote: > text — group consecutive lines into a single <discord-quote>
 		if (line.startsWith('> ') || line === '>') {
-			const quoteLines: string[] = [processInline(line.startsWith('> ') ? line.slice(2) : '', resolved, jumbo)];
+			const quoteLines: string[] = [
+				processInline(line.startsWith('> ') ? line.slice(2) : '', resolved, jumbo)
+			];
 			while (i + 1 < lines.length && (lines[i + 1].startsWith('> ') || lines[i + 1] === '>')) {
 				i++;
-				quoteLines.push(processInline(lines[i].startsWith('> ') ? lines[i].slice(2) : '', resolved, jumbo));
+				quoteLines.push(
+					processInline(lines[i].startsWith('> ') ? lines[i].slice(2) : '', resolved, jumbo)
+				);
 			}
 			output.push(`<discord-quote>${quoteLines.join('<br>')}</discord-quote>`);
 			continue;
@@ -219,7 +223,9 @@ export function markdownToDiscordComponents(
 		// Unordered list items: - item or * item
 		if (/^[*-] /.test(line)) {
 			const content = processInline(line.slice(2), resolved, jumbo);
-			output.push(`<discord-unordered-list><discord-list-item>${content}</discord-list-item></discord-unordered-list>`);
+			output.push(
+				`<discord-unordered-list><discord-list-item>${content}</discord-list-item></discord-unordered-list>`
+			);
 			continue;
 		}
 
@@ -253,15 +259,15 @@ export function replyToHtml(content: string, maxChars = 80): string {
 		.replace(/\r?\n/g, ' ')
 		.replace(/```[\s\S]*?```/g, '')
 		.replace(/`[^`]+`/g, '')
-		.replace(/\*{1,3}|_{1,2}|~~|\|\|/g, '')  // bold/italic/strike/spoiler
-		.replace(/^#+\s*/gm, '')                   // headers
-		.replace(/^>\s*/gm, '')                    // blockquotes
+		.replace(/\*{1,3}|_{1,2}|~~|\|\|/g, '') // bold/italic/strike/spoiler
+		.replace(/^#+\s*/gm, '') // headers
+		.replace(/^>\s*/gm, '') // blockquotes
 		.replace(/<@!?(\d+)>/g, '')
 		.replace(/<@&(\d+)>/g, '')
 		.replace(/<#(\d+)>/g, '')
 		.replace(/<\/[^:>]+:\d+>/g, '')
 		.replace(/<t:\d+(?::[tTdDfFR])?>/g, '')
-		.replace(/https?:\/\/\S+/g, '')           // strip bare URLs
+		.replace(/https?:\/\/\S+/g, '') // strip bare URLs
 		.replace(/\s{2,}/g, ' ')
 		.trim();
 
@@ -275,7 +281,10 @@ export function replyToHtml(content: string, maxChars = 80): string {
 	let match: RegExpExecArray | null;
 
 	const appendText = (raw: string) => {
-		if (charCount >= maxChars) { truncated = truncated || raw.length > 0; return; }
+		if (charCount >= maxChars) {
+			truncated = truncated || raw.length > 0;
+			return;
+		}
 		const remaining = maxChars - charCount;
 		const slice = raw.slice(0, remaining);
 		html += escapeHtml(slice);
@@ -288,7 +297,8 @@ export function replyToHtml(content: string, maxChars = 80): string {
 		if (charCount < maxChars) {
 			const [, name, id] = match;
 			const ext = match[0].startsWith('<a:') ? 'gif' : 'webp';
-			html += `<img src="https://cdn.discordapp.com/emojis/${id}.${ext}?size=32" ` +
+			html +=
+				`<img src="https://cdn.discordapp.com/emojis/${id}.${ext}?size=32" ` +
 				`alt=":${escapeHtml(name)}:" ` +
 				`style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">`;
 		} else {

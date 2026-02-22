@@ -23,7 +23,11 @@ export default defineConfig({
 	build: {
 		rollupOptions: {
 			onwarn(warning, warn) {
-				if (warning.code === 'SOURCEMAP_ERROR' || warning.message.includes('points to missing source files')) return;
+				if (
+					warning.code === 'SOURCEMAP_ERROR' ||
+					warning.message.includes('points to missing source files')
+				)
+					return;
 				warn(warning);
 			}
 		}

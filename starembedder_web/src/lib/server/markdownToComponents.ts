@@ -107,10 +107,7 @@ function processInline(text: string, resolved: ResolvedMentions): string {
 	return result;
 }
 
-export function markdownToDiscordComponents(
-	markdown: string,
-	resolved: ResolvedMentions
-): string {
+export function markdownToDiscordComponents(markdown: string, resolved: ResolvedMentions): string {
 	const lines = markdown.split('\n');
 	const output: string[] = [];
 
@@ -162,10 +159,14 @@ export function markdownToDiscordComponents(
 
 		// Blockquote: > text — group consecutive lines into a single <discord-quote>
 		if (line.startsWith('> ') || line === '>') {
-			const quoteLines: string[] = [processInline(line.startsWith('> ') ? line.slice(2) : '', resolved)];
+			const quoteLines: string[] = [
+				processInline(line.startsWith('> ') ? line.slice(2) : '', resolved)
+			];
 			while (i + 1 < lines.length && (lines[i + 1].startsWith('> ') || lines[i + 1] === '>')) {
 				i++;
-				quoteLines.push(processInline(lines[i].startsWith('> ') ? lines[i].slice(2) : '', resolved));
+				quoteLines.push(
+					processInline(lines[i].startsWith('> ') ? lines[i].slice(2) : '', resolved)
+				);
 			}
 			output.push(`<discord-quote>${quoteLines.join('<br>')}</discord-quote>`);
 			continue;
@@ -180,7 +181,9 @@ export function markdownToDiscordComponents(
 		// Unordered list items: - item or * item
 		if (/^[*-] /.test(line)) {
 			const content = processInline(line.slice(2), resolved);
-			output.push(`<discord-unordered-list><discord-list-item>${content}</discord-list-item></discord-unordered-list>`);
+			output.push(
+				`<discord-unordered-list><discord-list-item>${content}</discord-list-item></discord-unordered-list>`
+			);
 			continue;
 		}
 

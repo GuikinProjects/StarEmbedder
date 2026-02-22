@@ -112,10 +112,16 @@
 	const imageAtts = $derived(message.attachments.filter(isImage));
 	const videoAtts = $derived(message.attachments.filter(isVideo));
 	const audioAtts = $derived(message.attachments.filter(isAudio));
-	const fileAtts = $derived(message.attachments.filter((a) => !isImage(a) && !isVideo(a) && !isAudio(a)));
+	const fileAtts = $derived(
+		message.attachments.filter((a) => !isImage(a) && !isVideo(a) && !isAudio(a))
+	);
 
 	const hasAttachments = $derived(
-		imageAtts.length > 0 || videoAtts.length > 0 || audioAtts.length > 0 || fileAtts.length > 0 || (message.stickers?.length ?? 0) > 0
+		imageAtts.length > 0 ||
+			videoAtts.length > 0 ||
+			audioAtts.length > 0 ||
+			fileAtts.length > 0 ||
+			(message.stickers?.length ?? 0) > 0
 	);
 
 	function constrainDimensions(
@@ -165,11 +171,7 @@
 			{#if hasAttachments}
 				<discord-attachments slot="attachments">
 					{#each message.stickers ?? [] as sticker (sticker.id)}
-						<discord-image-attachment
-							url={sticker.url}
-							width={160}
-							height={160}
-							alt={sticker.name}
+						<discord-image-attachment url={sticker.url} width={160} height={160} alt={sticker.name}
 						></discord-image-attachment>
 					{/each}
 					{#each imageAtts as att (att.id)}
@@ -185,10 +187,7 @@
 						<discord-video-attachment href={att.url}></discord-video-attachment>
 					{/each}
 					{#each audioAtts as att (att.id)}
-						<discord-audio-attachment
-							href={att.url}
-							name={att.name}
-							bytes={att.size ?? 0}
+						<discord-audio-attachment href={att.url} name={att.name} bytes={att.size ?? 0}
 						></discord-audio-attachment>
 					{/each}
 					{#each fileAtts as att (att.id)}
@@ -220,7 +219,10 @@
 				>
 					{#if embed.description}
 						<discord-embed-description slot="description">
-							{@html markdownToDiscordComponents(embed.description, resolved)}<!-- eslint-disable-line svelte/no-at-html-tags -->
+							{@html markdownToDiscordComponents(
+								embed.description,
+								resolved
+							)}<!-- eslint-disable-line svelte/no-at-html-tags -->
 						</discord-embed-description>
 					{/if}
 
@@ -232,7 +234,10 @@
 									inline={field.inline}
 									inline-index={field.inline ? i + 1 : undefined}
 								>
-									{@html markdownToDiscordComponents(field.value, resolved)}<!-- eslint-disable-line svelte/no-at-html-tags -->
+									{@html markdownToDiscordComponents(
+										field.value,
+										resolved
+									)}<!-- eslint-disable-line svelte/no-at-html-tags -->
 								</discord-embed-field>
 							{/each}
 						</discord-embed-fields>

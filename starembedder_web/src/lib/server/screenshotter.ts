@@ -14,12 +14,7 @@ async function getBrowser(): Promise<Browser> {
 	launching = true;
 	browser = await puppeteer.launch({
 		headless: true,
-		args: [
-			'--no-sandbox',
-			'--disable-setuid-sandbox',
-			'--disable-dev-shm-usage',
-			'--disable-gpu'
-		]
+		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
 	});
 
 	// Clean up on browser disconnect
@@ -51,10 +46,9 @@ export async function screenshot(url: string): Promise<Buffer> {
 		await page.goto(url, { waitUntil: 'networkidle0', timeout: 15_000 });
 
 		// Wait until the discord-messages custom element is defined and rendered
-		await page.waitForFunction(
-			() => customElements.get('discord-messages') !== undefined,
-			{ timeout: 10_000 }
-		);
+		await page.waitForFunction(() => customElements.get('discord-messages') !== undefined, {
+			timeout: 10_000
+		});
 
 		// Give web components a tick to create their <img> / <video> DOM nodes
 		await new Promise((r) => setTimeout(r, 500));

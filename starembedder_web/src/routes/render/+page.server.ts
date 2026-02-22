@@ -37,7 +37,8 @@ const PREVIEW_PAYLOAD: RenderPayload = {
 			authorName: 'SomeUser',
 			avatarUrl: 'https://cdn.discordapp.com/embed/avatars/1.png',
 			roleColor: '#3498db',
-			content: 'check this out <a:dancing:1234567890> and some **bold** ~~strike~~ text that goes on long enough to be truncated with an ellipsis eventually',
+			content:
+				'check this out <a:dancing:1234567890> and some **bold** ~~strike~~ text that goes on long enough to be truncated with an ellipsis eventually',
 			attachment: false,
 			edited: false
 		},
