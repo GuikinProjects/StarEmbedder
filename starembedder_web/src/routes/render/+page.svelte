@@ -68,6 +68,7 @@
 	function formatDiscordTimestamp(iso: string): string {
 		const date = new Date(iso);
 		const now = new Date();
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const yesterday = new Date(now);
 		yesterday.setDate(yesterday.getDate() - 1);
 
@@ -154,14 +155,16 @@
 					role-color={message.reply.roleColor}
 					edited={message.reply.edited}
 					attachment={message.reply.attachment}
-				>{@html renderedReply}</discord-reply>
+				>
+					{@html renderedReply}<!-- eslint-disable-line svelte/no-at-html-tags -->
+				</discord-reply>
 			{/if}
 
-			{@html renderedContent}
+			{@html renderedContent}<!-- eslint-disable-line svelte/no-at-html-tags -->
 
 			{#if hasAttachments}
 				<discord-attachments slot="attachments">
-					{#each message.stickers ?? [] as sticker}
+					{#each message.stickers ?? [] as sticker (sticker.id)}
 						<discord-image-attachment
 							url={sticker.url}
 							width={160}
@@ -169,7 +172,7 @@
 							alt={sticker.name}
 						></discord-image-attachment>
 					{/each}
-					{#each imageAtts as att}
+					{#each imageAtts as att (att.id)}
 						{@const dim = constrainDimensions(att.width ?? 400, att.height ?? 300)}
 						<discord-image-attachment
 							url={att.url}
@@ -178,17 +181,17 @@
 							alt={att.name}
 						></discord-image-attachment>
 					{/each}
-					{#each videoAtts as att}
+					{#each videoAtts as att (att.id)}
 						<discord-video-attachment href={att.url}></discord-video-attachment>
 					{/each}
-					{#each audioAtts as att}
+					{#each audioAtts as att (att.id)}
 						<discord-audio-attachment
 							href={att.url}
 							name={att.name}
 							bytes={att.size ?? 0}
 						></discord-audio-attachment>
 					{/each}
-					{#each fileAtts as att}
+					{#each fileAtts as att (att.id)}
 						<discord-file-attachment
 							name={att.name}
 							bytes={att.size ?? 0}
@@ -200,7 +203,7 @@
 				</discord-attachments>
 			{/if}
 
-			{#each message.embeds as embed (embed)}
+			{#each message.embeds as embed (embed.id)}
 				{@const embedColor = colorToHex(embed.color)}
 				<discord-embed
 					slot="embeds"
@@ -217,19 +220,19 @@
 				>
 					{#if embed.description}
 						<discord-embed-description slot="description">
-							{@html markdownToDiscordComponents(embed.description, resolved)}
+							{@html markdownToDiscordComponents(embed.description, resolved)}<!-- eslint-disable-line svelte/no-at-html-tags -->
 						</discord-embed-description>
 					{/if}
 
 					{#if embed.fields?.length}
 						<discord-embed-fields slot="fields">
-							{#each embed.fields as field, i}
+							{#each embed.fields as field, i (i)}
 								<discord-embed-field
 									field-title={field.name}
 									inline={field.inline}
 									inline-index={field.inline ? i + 1 : undefined}
 								>
-									{@html markdownToDiscordComponents(field.value, resolved)}
+									{@html markdownToDiscordComponents(field.value, resolved)}<!-- eslint-disable-line svelte/no-at-html-tags -->
 								</discord-embed-field>
 							{/each}
 						</discord-embed-fields>

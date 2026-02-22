@@ -249,7 +249,7 @@ export function markdownToDiscordComponents(
  */
 export function replyToHtml(content: string, maxChars = 80): string {
 	// 1. Collapse whitespace and strip block-level markup
-	let text = content
+	const text = content
 		.replace(/\r?\n/g, ' ')
 		.replace(/```[\s\S]*?```/g, '')
 		.replace(/`[^`]+`/g, '')
