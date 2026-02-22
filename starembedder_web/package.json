@@ -39,6 +39,7 @@
 	},
 	"dependencies": {
 		"@skyra/discord-components-core": "^4.0.2",
+		"@sveltejs/adapter-node": "^5.5.3",
 		"lit": "^3.3.2",
 		"puppeteer": "^24.37.5"
 	}
