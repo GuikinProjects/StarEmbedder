@@ -12,12 +12,7 @@ export interface BlacklistEntry {
 	name?: string;
 }
 
-export function buildConfigComponents(
-	config: GuildConfigDisplay | null,
-	header: string,
-	hint: string,
-	blacklist?: BlacklistEntry[]
-) {
+export function buildConfigComponents(config: GuildConfigDisplay | null, header: string, hint: string, blacklist?: BlacklistEntry[]) {
 	const channelDisplay = config?.skullboardChannelId ? `<#${config.skullboardChannelId}>` : '*Not set*';
 	const thresholdDisplay = config ? String(config.skullThreshold) : '3 *(default)*';
 	const emojiDisplay = config?.skullEmoji ?? '💀 *(default)*';
@@ -34,9 +29,7 @@ export function buildConfigComponents(
 		const categories = blacklist.filter((e) => e.type === 'category');
 
 		const channelLines = channels.length ? channels.map((e) => `• <#${e.entryId}>`).join('\n') : '*None*';
-		const categoryLines = categories.length
-			? categories.map((e) => `• \`${e.name ?? e.entryId}\``).join('\n')
-			: '*None*';
+		const categoryLines = categories.length ? categories.map((e) => `• \`${e.name ?? e.entryId}\``).join('\n') : '*None*';
 
 		const blacklistBody = `> ### Blacklisted Channels\n${channelLines}\n\n> ### Blacklisted Categories\n${categoryLines}`;
 
@@ -53,7 +46,5 @@ export function buildConfigComponents(
 }
 
 export function buildErrorComponents(message: string) {
-	return [
-		new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ❌ Error\n${message}`))
-	];
+	return [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ❌ Error\n${message}`))];
 }

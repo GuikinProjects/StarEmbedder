@@ -1,7 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
 import { eq, and } from 'drizzle-orm';
-import { ChannelType, ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, SlashCommandChannelOption, TextDisplayBuilder } from 'discord.js';
+import {
+	ChannelType,
+	ContainerBuilder,
+	MessageFlags,
+	PermissionFlagsBits,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	SlashCommandChannelOption,
+	TextDisplayBuilder
+} from 'discord.js';
 import { buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 import { blacklistedEntries } from '../../../lib/db/schema';
 
@@ -59,9 +68,7 @@ export class SkullboardBlacklistRemoveCommand extends Command {
 		if (!existing) {
 			return interaction.reply({
 				flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-				components: buildErrorComponents(
-					`${isCategory ? 'Category' : 'Channel'} <#${target.id}> is not in the blacklist.`
-				)
+				components: buildErrorComponents(`${isCategory ? 'Category' : 'Channel'} <#${target.id}> is not in the blacklist.`)
 			});
 		}
 

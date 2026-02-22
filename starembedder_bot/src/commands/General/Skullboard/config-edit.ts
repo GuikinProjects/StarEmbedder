@@ -1,13 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
 import { eq } from 'drizzle-orm';
-import {
-	MessageFlags,
-	PermissionFlagsBits,
-	SlashCommandChannelOption,
-	SlashCommandIntegerOption,
-	SlashCommandStringOption
-} from 'discord.js';
+import { MessageFlags, PermissionFlagsBits, SlashCommandChannelOption, SlashCommandIntegerOption, SlashCommandStringOption } from 'discord.js';
 import { buildConfigComponents, buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 import { guildConfigs } from '../../../lib/db/schema';
 
@@ -20,10 +14,7 @@ import { guildConfigs } from '../../../lib/db/schema';
 		.setName('config-edit')
 		.setDescription('Update the Skullboard configuration for this server')
 		.addChannelOption((option: SlashCommandChannelOption) =>
-			option
-				.setName('channel')
-				.setDescription('Channel where skulled messages will be reposted')
-				.setRequired(false)
+			option.setName('channel').setDescription('Channel where skulled messages will be reposted').setRequired(false)
 		)
 		.addIntegerOption((option: SlashCommandIntegerOption) =>
 			option

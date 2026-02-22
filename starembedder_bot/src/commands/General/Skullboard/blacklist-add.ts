@@ -1,7 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
 import { eq, and } from 'drizzle-orm';
-import { ChannelType, ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, SlashCommandChannelOption, TextDisplayBuilder } from 'discord.js';
+import {
+	ChannelType,
+	ContainerBuilder,
+	MessageFlags,
+	PermissionFlagsBits,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	SlashCommandChannelOption,
+	TextDisplayBuilder
+} from 'discord.js';
 import { buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 import { blacklistedEntries } from '../../../lib/db/schema';
 
@@ -65,9 +74,7 @@ export class SkullboardBlacklistAddCommand extends Command {
 			});
 		}
 
-		db.insert(blacklistedEntries)
-			.values({ guildId, entryId: target.id, type, createdAt: new Date() })
-			.run();
+		db.insert(blacklistedEntries).values({ guildId, entryId: target.id, type, createdAt: new Date() }).run();
 
 		return interaction.reply({
 			flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,

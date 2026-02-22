@@ -10,10 +10,7 @@ export class SkullboardCommand extends Subcommand {
 		registry.registerChatInputCommand((builder) => {
 			this.hooks.subcommands(this, builder);
 
-			return builder
-				.setName(this.name)
-				.setDescription(this.description)
-				.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+			return builder.setName(this.name).setDescription(this.description).setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 		});
 	}
 }

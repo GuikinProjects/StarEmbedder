@@ -1,14 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
 import { eq } from 'drizzle-orm';
-import {
-	ContainerBuilder,
-	MessageFlags,
-	PermissionFlagsBits,
-	SeparatorBuilder,
-	SeparatorSpacingSize,
-	TextDisplayBuilder
-} from 'discord.js';
+import { ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder } from 'discord.js';
 import { buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 import { blacklistedEntries } from '../../../lib/db/schema';
 
@@ -35,11 +28,7 @@ export class SkullboardBlacklistListCommand extends Command {
 			});
 		}
 
-		const entries = this.container.db
-			.select()
-			.from(blacklistedEntries)
-			.where(eq(blacklistedEntries.guildId, interaction.guildId))
-			.all();
+		const entries = this.container.db.select().from(blacklistedEntries).where(eq(blacklistedEntries.guildId, interaction.guildId)).all();
 
 		const channels = entries.filter((e) => e.type === 'channel');
 		const categories = entries.filter((e) => e.type === 'category');
@@ -65,9 +54,7 @@ export class SkullboardBlacklistListCommand extends Command {
 					.addTextDisplayComponents(new TextDisplayBuilder().setContent(body))
 					.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
 					.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(
-							'-# Use `/skullboard blacklist-add` or `/skullboard blacklist-remove` to manage entries.'
-						)
+						new TextDisplayBuilder().setContent('-# Use `/skullboard blacklist-add` or `/skullboard blacklist-remove` to manage entries.')
 					)
 			]
 		});
