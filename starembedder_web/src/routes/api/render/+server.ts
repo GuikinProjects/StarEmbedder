@@ -19,8 +19,9 @@ export const POST = async ({ request, url }: RequestEvent) => {
 
 	const id = storePayload(payload);
 
-	const origin = url.origin; // e.g. http://localhost:5173
-	const renderUrl = `${origin}/render?id=${id}`;
+	// Force HTTP for internal container communication (Puppeteer runs locally on HTTP)
+	const host = url.host; // e.g. localhost:27010
+	const renderUrl = `http://${host}/render?id=${id}`;
 
 	try {
 		const png = await screenshot(renderUrl);
