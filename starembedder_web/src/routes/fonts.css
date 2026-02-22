@@ -1,0 +1,197 @@
+/* gg sans — Discord's primary UI font */
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-Normal.woff2') format('woff2'),
+		url('/fonts/ggsans-Normal.woff') format('woff');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-NormalItalic.woff2') format('woff2'),
+		url('/fonts/ggsans-NormalItalic.woff') format('woff');
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-Medium.woff2') format('woff2'),
+		url('/fonts/ggsans-Medium.woff') format('woff');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-MediumItalic.woff2') format('woff2'),
+		url('/fonts/ggsans-MediumItalic.woff') format('woff');
+	font-weight: 500;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-SemiBold.woff2') format('woff2'),
+		url('/fonts/ggsans-SemiBold.woff') format('woff');
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-SemiBoldItalic.woff2') format('woff2'),
+		url('/fonts/ggsans-SemiBoldItalic.woff') format('woff');
+	font-weight: 600;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-Bold.woff2') format('woff2'),
+		url('/fonts/ggsans-Bold.woff') format('woff');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-BoldItalic.woff2') format('woff2'),
+		url('/fonts/ggsans-BoldItalic.woff') format('woff');
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-ExtraBold.woff2') format('woff2'),
+		url('/fonts/ggsans-ExtraBold.woff') format('woff');
+	font-weight: 800;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans';
+	src:
+		url('/fonts/ggsans-ExtraBoldItalic.woff2') format('woff2'),
+		url('/fonts/ggsans-ExtraBoldItalic.woff') format('woff');
+	font-weight: 800;
+	font-style: italic;
+	font-display: swap;
+}
+
+/* gg sans Mono — used for inline code and code blocks */
+
+@font-face {
+	font-family: 'gg sans Mono';
+	src:
+		url('/fonts/ggsansmono-Normal.woff2') format('woff2'),
+		url('/fonts/ggsansmono-Normal.woff') format('woff');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'gg sans Mono';
+	src:
+		url('/fonts/ggsansmono-Bold.woff2') format('woff2'),
+		url('/fonts/ggsansmono-Bold.woff') format('woff');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* ABC Ginto Discord — used in Discord's display headings */
+
+@font-face {
+	font-family: 'ABC Ginto Discord';
+	src:
+		url('/fonts/ABCGintoDiscord-Regular.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscord-Regular.woff') format('woff');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'ABC Ginto Discord';
+	src:
+		url('/fonts/ABCGintoDiscord-RegularItalic.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscord-RegularItalic.woff') format('woff');
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'ABC Ginto Discord';
+	src:
+		url('/fonts/ABCGintoDiscord-Medium.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscord-Medium.woff') format('woff');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'ABC Ginto Discord';
+	src:
+		url('/fonts/ABCGintoDiscord-MediumItalic.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscord-MediumItalic.woff') format('woff');
+	font-weight: 500;
+	font-style: italic;
+	font-display: swap;
+}
+
+/* ABC Ginto Discord Nord — condensed display variant */
+
+@font-face {
+	font-family: 'ABC Ginto Discord Nord';
+	src:
+		url('/fonts/ABCGintoDiscordNord-Bold.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscordNord-Bold.woff') format('woff');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'ABC Ginto Discord Nord';
+	src:
+		url('/fonts/ABCGintoDiscordNord-BoldItalic.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscordNord-BoldItalic.woff') format('woff');
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'ABC Ginto Discord Nord';
+	src:
+		url('/fonts/ABCGintoDiscordNord-BlackItalic.woff2') format('woff2'),
+		url('/fonts/ABCGintoDiscordNord-BlackItalic.woff') format('woff');
+	font-weight: 900;
+	font-style: italic;
+	font-display: swap;
+}

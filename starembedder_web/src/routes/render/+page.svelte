@@ -15,6 +15,46 @@
 	const resolved = $derived(data.payload.resolved);
 	const isEdited = $derived(message.editedAt != null);
 
+	// Inject border-radius into the shadow roots of image/video attachment components.
+	// These components expose no ::part() or CSS variables, so the only way to style
+	// the inner <img> is to append a <style> element directly into each shadow root.
+	// A MutationObserver is used so styles are injected as soon as the element appears,
+	// before Puppeteer's image-wait / settle ticks run.
+	$effect(() => {
+		const TAGS = new Set(['discord-image-attachment', 'discord-video-attachment']);
+		const STYLE = ':host { overflow: visible; border-radius: 0; } img { border-radius: 5px; }';
+
+		function injectInto(el: Element) {
+			const root = el.shadowRoot;
+			if (!root || root.querySelector('style[data-star-br]')) return;
+			const style = document.createElement('style');
+			style.setAttribute('data-star-br', '');
+			style.textContent = STYLE;
+			root.appendChild(style);
+		}
+
+		// Handle elements already in the DOM at mount time
+		for (const tag of TAGS) {
+			document.querySelectorAll(tag).forEach(injectInto);
+		}
+
+		// Handle elements added after mount (dynamic content)
+		const observer = new MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				for (const node of mutation.addedNodes) {
+					if (!(node instanceof Element)) continue;
+					if (TAGS.has(node.localName)) injectInto(node);
+					for (const tag of TAGS) {
+						node.querySelectorAll(tag).forEach(injectInto);
+					}
+				}
+			}
+		});
+
+		observer.observe(document.body, { childList: true, subtree: true });
+		return () => observer.disconnect();
+	});
+
 	// Register clan icon URL into the component's icons map before Lit renders.
 	// The component has a bug (clanIcon === 'string' instead of typeof ... === 'string')
 	// so external URLs never render as <img> unless they're in the map as TemplateResults.
@@ -211,6 +251,7 @@
 		margin: 0;
 		padding: 0;
 		background: transparent;
+		font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 	}
 
 	.wrapper {
