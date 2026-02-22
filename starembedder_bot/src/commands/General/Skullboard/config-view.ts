@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
 import { eq } from 'drizzle-orm';
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { buildConfigComponents, buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 import { blacklistedEntries, guildConfigs } from '../../../lib/db/schema';
 
@@ -18,6 +18,13 @@ export class SkullboardConfigViewCommand extends Command {
 			return interaction.reply({
 				flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
 				components: buildErrorComponents('This command can only be used inside a server.')
+			});
+		}
+
+		if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+			return interaction.reply({
+				flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+				components: buildErrorComponents('You need the **Manage Server** permission to use this command.')
 			});
 		}
 

@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, RegisterSubCommand } from '@kaname-png/plugin-subcommands-advanced';
-import { ContainerBuilder, MessageFlags, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder } from 'discord.js';
+import { ContainerBuilder, MessageFlags, PermissionFlagsBits, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder } from 'discord.js';
+import { buildErrorComponents } from '../../../lib/skullboard/displayConfig';
 
 @ApplyOptions<Command.Options>({
 	name: 'ping',
@@ -9,6 +10,20 @@ import { ContainerBuilder, MessageFlags, SeparatorBuilder, SeparatorSpacingSize,
 @RegisterSubCommand('skullboard', (builder) => builder.setName('ping').setDescription('Skullboard Module Latency Command'))
 export class SkullboardPingCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.inCachedGuild()) {
+			return interaction.reply({
+				flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+				components: buildErrorComponents('This command can only be used inside a server.')
+			});
+		}
+
+		if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+			return interaction.reply({
+				flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+				components: buildErrorComponents('You need the **Manage Server** permission to use this command.')
+			});
+		}
+
 		const { resource } = await interaction.reply({
 			flags: MessageFlags.IsComponentsV2,
 			components: this.buildComponents('...', '...'),
