@@ -35,5 +35,7 @@ declare module '@skyra/env-utilities' {
 		OWNERS: ArrayString;
 		/** Absolute path to the SQLite database file. Defaults to <cwd>/data/skullboard.db. */
 		DATABASE_PATH: string;
+		/** Base URL of the local SvelteKit web server used to render skullboard message images. */
+		WEB_SERVER_URL: string;
 	}
 }
