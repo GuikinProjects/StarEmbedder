@@ -72,7 +72,8 @@ export class MessageReactionAddListener extends Listener {
 		this.processing.add(lockKey);
 
 		try {
-			const message = reaction.message.partial ? await reaction.message.fetch() : reaction.message;
+			// Always force-fetch to get fresh CDN URLs (cached messages may have expired attachment URLs).
+			const message = await reaction.message.fetch(true);
 			const guild = message.guild!;
 
 			await executeSkullboardPost({
