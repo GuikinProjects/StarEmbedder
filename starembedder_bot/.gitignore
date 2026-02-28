@@ -32,5 +32,6 @@ package-lock.json
 # Custom
 .env
 
-# SQLite database file
+# SQLite database files
 src/lib/db/data/
+*.db
