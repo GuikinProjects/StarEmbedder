@@ -130,6 +130,11 @@ function processInline(text: string, resolved: ResolvedMentions, jumbo = false):
 		return `<discord-link href="${escapeHtml(url)}" target="_blank">${escapeHtml(label)}</discord-link>`;
 	});
 
+	// Angle-bracket URLs: <https://example.com> (Discord embed-suppressed links)
+	result = result.replace(/<(https?:\/\/[^\s>]+)>/g, (_full, url) => {
+		return `<discord-link href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</discord-link>`;
+	});
+
 	// Bare URLs (leave as-is inside discord-link)
 	result = result.replace(/(^|[\s])(https?:\/\/[^\s<>"]+)/g, (_full, pre, url) => {
 		return `${pre}<discord-link href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</discord-link>`;
@@ -267,6 +272,7 @@ export function replyToHtml(content: string, maxChars = 80): string {
 		.replace(/<#(\d+)>/g, '')
 		.replace(/<\/[^:>]+:\d+>/g, '')
 		.replace(/<t:\d+(?::[tTdDfFR])?>/g, '')
+		.replace(/<(https?:\/\/[^\s>]+)>/g, '') // strip angle-bracket URLs
 		.replace(/https?:\/\/\S+/g, '') // strip bare URLs
 		.replace(/\s{2,}/g, ' ')
 		.trim();
