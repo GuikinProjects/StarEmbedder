@@ -149,9 +149,9 @@ export function attachmentToRender(att: Attachment): RenderAttachment {
 	};
 }
 
-/** Returns true for Discord CDN URLs that carry expiry params (ex=...). */
-function isExpirableDiscordUrl(url: string): boolean {
-	return /^https?:\/\/(?:cdn|media)\.discordapp\.(?:com|net)\//.test(url) && url.includes('ex=');
+/** Returns true for Discord CDN URLs that need auth tokens (attachments path). */
+function isRefreshableDiscordUrl(url: string): boolean {
+	return /^https?:\/\/(?:cdn|media)\.discordapp\.(?:com|net)\/attachments\//.test(url);
 }
 
 /**
@@ -160,7 +160,7 @@ function isExpirableDiscordUrl(url: string): boolean {
  */
 async function refreshDiscordUrls(urls: string[]): Promise<Map<string, string>> {
 	const map = new Map<string, string>(urls.map((u) => [u, u]));
-	const toRefresh = urls.filter(isExpirableDiscordUrl);
+	const toRefresh = urls.filter(isRefreshableDiscordUrl);
 	if (toRefresh.length === 0) return map;
 
 	try {
@@ -319,12 +319,18 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 				width = e.video?.width ?? undefined;
 				height = e.video?.height ?? undefined;
 			} else {
-				const rawData = e.data as { image?: { url?: string; proxy_url?: string; width?: number; height?: number }; url?: string };
-				url = e.image?.proxyURL ?? rawData.image?.proxy_url ?? e.image?.url ?? rawData.image?.url ?? e.url;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const rawData = e.data as any;
+
+				// Prefer URLs with auth tokens (image.url / image.proxy_url) over bare e.url.
+				// Discord embeds of type "image" store the authenticated URL in .image.url
+				// while .url is the canonical bare URL without tokens.
+				url = rawData?.image?.url ?? rawData?.image?.proxy_url ?? e.image?.url ?? e.image?.proxyURL ?? e.url;
+
 				const rawUrl = url ?? '';
 				contentType = /\.gif/i.test(rawUrl) ? 'image/gif' : 'image/webp';
-				width = rawData.image?.width ?? e.image?.width ?? undefined;
-				height = rawData.image?.height ?? e.image?.height ?? undefined;
+				width = rawData?.image?.width ?? e.image?.width ?? undefined;
+				height = rawData?.image?.height ?? e.image?.height ?? undefined;
 			}
 
 			if (url) {
