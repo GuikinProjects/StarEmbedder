@@ -45,6 +45,17 @@ log "Installing web dependencies..."
 cd "$DIR/starembedder_web"
 $PKG install || fail "web install failed"
 
+# ── Ensure emoji font is available ────────────────────────────────────────────
+if ! fc-list : family | grep -qi "Noto Color Emoji"; then
+    log "Noto Color Emoji font not found — installing..."
+    apt-get update -qq && apt-get install -y --no-install-recommends fonts-noto-color-emoji \
+        && rm -rf /var/lib/apt/lists/* \
+        && fc-cache -f \
+        || log "${YELLOW}WARNING:${RESET} Could not install fonts-noto-color-emoji (no root?) — emoji may render as boxes"
+else
+    log "Noto Color Emoji font already installed ✓"
+fi
+
 # ── Install Puppeteer browsers ────────────────────────────────────────────────
 log "Installing Puppeteer browsers..."
 cd "$DIR/starembedder_web"
