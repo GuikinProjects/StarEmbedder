@@ -9,7 +9,7 @@ const store = new Map<string, RenderPayload>();
 export function storePayload(payload: RenderPayload): string {
 	const id = crypto.randomUUID();
 	store.set(id, payload);
-	setTimeout(() => store.delete(id), 30_000);
+	setTimeout(() => store.delete(id), 60_000);
 	return id;
 }
 
