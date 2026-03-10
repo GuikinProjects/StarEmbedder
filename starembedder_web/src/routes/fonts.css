@@ -195,3 +195,9 @@
 	font-style: italic;
 	font-display: swap;
 }
+
+@font-face {
+	font-family: 'Noto Color Emoji';
+	src: url('/fonts/NotoColorEmoji.ttf') format('truetype');
+	font-display: swap;
+}
