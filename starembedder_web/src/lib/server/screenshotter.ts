@@ -59,6 +59,9 @@ async function tryScreenshot(url: string): Promise<Buffer> {
 			timeout: 10_000
 		});
 
+		// Wait for all fonts (including the 11MB emoji font) to finish loading
+		await page.evaluate(() => document.fonts.ready);
+
 		// Give web components a tick to create their <img> / <video> DOM nodes
 		await new Promise((r) => setTimeout(r, 500));
 
