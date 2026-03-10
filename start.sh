@@ -45,21 +45,20 @@ log "Installing web dependencies..."
 cd "$DIR/starembedder_web"
 $PKG install || fail "web install failed"
 
-# ── Ensure emoji font is available ────────────────────────────────────────────
-if ! fc-list : family | grep -qi "Noto Color Emoji"; then
-    log "Noto Color Emoji font not found — installing..."
-    apt-get update -qq && apt-get install -y --no-install-recommends fonts-noto-color-emoji \
-        && rm -rf /var/lib/apt/lists/* \
-        && fc-cache -f \
-        || log "${YELLOW}WARNING:${RESET} Could not install fonts-noto-color-emoji (no root?) — emoji may render as boxes"
-else
-    log "Noto Color Emoji font already installed ✓"
-fi
-
 # ── Install Puppeteer browsers ────────────────────────────────────────────────
 log "Installing Puppeteer browsers..."
 cd "$DIR/starembedder_web"
 npx puppeteer browsers install chrome || fail "puppeteer browsers install failed"
+
+# ── Install emoji font for Chrome ─────────────────────────────────────────────
+EMOJI_FONT="$DIR/starembedder_web/static/fonts/NotoColorEmoji.ttf"
+FONT_DIR="$HOME/.local/share/fonts"
+if [[ -f "$EMOJI_FONT" ]] && ! fc-list | grep -q "Noto Color Emoji"; then
+    log "Installing Noto Color Emoji font..."
+    mkdir -p "$FONT_DIR"
+    cp "$EMOJI_FONT" "$FONT_DIR/"
+    fc-cache -f 2>/dev/null
+fi
 
 # ── Database migrations ───────────────────────────────────────────────────────
 if [[ "${SKIP_MIGRATE}" != "1" ]]; then
