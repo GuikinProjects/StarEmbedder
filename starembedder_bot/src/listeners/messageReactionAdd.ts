@@ -40,6 +40,8 @@ export class MessageReactionAddListener extends Listener {
 
 		if (!config || !config.skullboardChannelId) return;
 
+		if (reaction.message.channelId === config.skullboardChannelId) return;
+
 		const blacklistedIds = new Set(rawBlacklist.map((e) => e.entryId));
 		const msgChannel = reaction.message.channel;
 		const categoryId = 'parentId' in msgChannel ? msgChannel.parentId : null;
@@ -90,5 +92,3 @@ export class MessageReactionAddListener extends Listener {
 		}
 	}
 }
-
-

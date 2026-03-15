@@ -541,6 +541,11 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 		]
 	});
 
+	// ── React own message ─────────────────────────────────────────────────────────
+	await skullboardMessage.react(skullEmoji).catch((err) => {
+		logger.warn(`Failed to react to skullboard message ${skullboardMessage.id}:`, err);
+	});
+
 	// ── Persist to DB ─────────────────────────────────────────────────────────
 	if (!skipDb) {
 		const dbResult = await db
