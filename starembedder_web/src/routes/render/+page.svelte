@@ -22,7 +22,8 @@
 	// before Puppeteer's image-wait / settle ticks run.
 	$effect(() => {
 		const TAGS = new Set(['discord-image-attachment', 'discord-video-attachment']);
-		const STYLE = ':host { overflow: visible; border-radius: 0; } img { border-radius: 5px; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }';
+		const STYLE =
+			':host { overflow: visible; border-radius: 0; } img { border-radius: 5px; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }';
 
 		function injectInto(el: Element) {
 			const root = el.shadowRoot;
@@ -59,8 +60,7 @@
 	// :host::before connector line's right end and the avatar, without shifting the avatar.
 	// The built-in margin-right is 4px; bumping it to 10px leaves a visible gap.
 	$effect(() => {
-		const REPLY_STYLE =
-			':host::before { margin-right: 5px !important; }';
+		const REPLY_STYLE = ':host::before { margin-right: 5px !important; }';
 
 		function injectReplyStyle(el: Element) {
 			const root = el.shadowRoot;
@@ -291,7 +291,7 @@
 		margin: 0;
 		padding: 0;
 		background: transparent;
-		font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Noto Color Emoji';
+		font-family: 'gg sans', 'Noto Sans', sans-serif, 'Noto Color Emoji';
 	}
 
 	:global(img) {
