@@ -201,3 +201,11 @@
 	src: url('/fonts/NotoColorEmoji.ttf') format('truetype');
 	font-display: swap;
 }
+
+@font-face {
+	font-family: 'gg sans';
+	src: local('Unifont'), local('unifont');
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+}
