@@ -178,6 +178,101 @@ async function refreshDiscordUrls(urls: string[]): Promise<Map<string, string>> 
 	return map;
 }
 
+const RENDER_FETCH_TIMEOUT_MS = 15_000;
+const RENDER_FETCH_RETRIES = 2;
+
+function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatFetchError(err: unknown): string {
+	if (!(err instanceof Error)) return String(err);
+
+	const cause = (err as Error & { cause?: unknown }).cause;
+	if (cause instanceof Error) {
+		return `${err.message} (cause: ${cause.message})`;
+	}
+
+	return err.message;
+}
+
+function buildRenderEndpoints(webServerUrl: string): string[] {
+	const endpoints: string[] = [];
+
+	let parsed: URL;
+	try {
+		parsed = new URL(webServerUrl);
+	} catch {
+		// If env var isn't a valid absolute URL, keep old behavior as fallback.
+		return [`${webServerUrl.replace(/\/+$/, '')}/api/render`];
+	}
+
+	const toEndpoint = (url: URL) => {
+		const next = new URL(url.toString());
+		next.pathname = '/api/render';
+		next.search = '';
+		next.hash = '';
+		return next.toString();
+	};
+
+	endpoints.push(toEndpoint(parsed));
+
+	// Some hosts resolve localhost to ::1 first; add loopback fallbacks.
+	if (parsed.hostname === 'localhost') {
+		const ipv4 = new URL(parsed.toString());
+		ipv4.hostname = '127.0.0.1';
+		endpoints.push(toEndpoint(ipv4));
+
+		const ipv6 = new URL(parsed.toString());
+		ipv6.hostname = '[::1]';
+		endpoints.push(toEndpoint(ipv6));
+	}
+
+	return [...new Set(endpoints)];
+}
+
+async function requestRenderPng(payload: RenderPayload, webServerUrl: string): Promise<Buffer | null> {
+	const logger = container.logger;
+	const endpoints = buildRenderEndpoints(webServerUrl);
+	const maxAttempts = endpoints.length * RENDER_FETCH_RETRIES;
+
+	let attempt = 0;
+	for (const endpoint of endpoints) {
+		for (let retry = 0; retry < RENDER_FETCH_RETRIES; retry++) {
+			attempt += 1;
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), RENDER_FETCH_TIMEOUT_MS);
+
+			try {
+				const res = await fetch(endpoint, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+					signal: controller.signal
+				});
+
+				if (res.ok) {
+					return Buffer.from(await res.arrayBuffer());
+				}
+
+				logger.warn(`Skullboard render failed: HTTP ${res.status} (${endpoint}) [attempt ${attempt}/${maxAttempts}]`);
+			} catch (err) {
+				logger.warn(
+					`Skullboard render request failed (${endpoint}) [attempt ${attempt}/${maxAttempts}]: ${formatFetchError(err)}`
+				);
+			} finally {
+				clearTimeout(timeout);
+			}
+
+			if (attempt < maxAttempts) {
+				await sleep(300 * attempt);
+			}
+		}
+	}
+
+	return null;
+}
+
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
 
 export interface SkullboardPostOptions {
@@ -423,22 +518,7 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 
 	// ── Request render from web server ────────────────────────────────────────
 	const webServerUrl = envParseString('WEB_SERVER_URL');
-	let pngBuffer: Buffer | null = null;
-
-	try {
-		const res = await fetch(`${webServerUrl}/api/render`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(payload)
-		});
-		if (res.ok) {
-			pngBuffer = Buffer.from(await res.arrayBuffer());
-		} else {
-			logger.warn(`Skullboard render failed: HTTP ${res.status}`);
-		}
-	} catch (err) {
-		logger.warn('Skullboard render request failed:', err);
-	}
+	const pngBuffer = await requestRenderPng(payload, webServerUrl);
 
 	// ── Post to skullboard channel ────────────────────────────────────────────
 	const skullboardMessage = await skullboardChannel.send({
