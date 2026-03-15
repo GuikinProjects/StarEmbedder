@@ -12,6 +12,12 @@ DIM="\033[2m"
 log()  { echo -e "${DIM}[$(date '+%H:%M:%S')]${RESET} ${BOLD}[start]${RESET} $*"; }
 fail() { echo -e "${DIM}[$(date '+%H:%M:%S')]${RESET} ${RED}${BOLD}[start] ERROR:${RESET} $*" >&2; exit 1; }
 
+# ── Load nvm so npm/npx/node are on PATH ─────────────────────────────────────
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+nvm alias default node >/dev/null 2>&1 || true
+
 # Prefix every line of a service's output with a coloured tag
 prefix_output() {
     local color=$1 name=$2
@@ -19,6 +25,8 @@ prefix_output() {
         echo -e "${DIM}[$(date '+%H:%M:%S')]${RESET} ${color}${BOLD}[$name]${RESET} $line"
     done
 }
+
+
 
 # ── Paths & package manager ───────────────────────────────────────────────────
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,19 +53,48 @@ log "Installing web dependencies..."
 cd "$DIR/starembedder_web"
 $PKG install || fail "web install failed"
 
-# ── Install Puppeteer browsers ────────────────────────────────────────────────
+# ── Install Puppeteer browsers + system runtime dependencies ──────────────────
 log "Installing Puppeteer browsers..."
 cd "$DIR/starembedder_web"
 npx puppeteer browsers install chrome || fail "puppeteer browsers install failed"
 
-# ── Install emoji font for Chrome ─────────────────────────────────────────────
+# Let Puppeteer install Chrome's Linux system dependencies using its own
+# distro-aware resolver (handles Ubuntu 24.04 t64 package names correctly).
+if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
+    log "Installing Chromium system runtime dependencies..."
+    if [[ "$EUID" -eq 0 ]]; then
+        npx puppeteer browsers install chrome --install-deps 2>&1 | prefix_output "$DIM" "chrome-deps" || \
+            log "${YELLOW}WARNING:${RESET} Chrome system deps install failed — renderer may not start"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo env PATH="$PATH" npx puppeteer browsers install chrome --install-deps 2>&1 | prefix_output "$DIM" "chrome-deps" || \
+            log "${YELLOW}WARNING:${RESET} Chrome system deps install failed — renderer may not start"
+    else
+        log "${YELLOW}WARNING:${RESET} No root/sudo access — Chrome system deps not installed"
+    fi
+fi
+
+# ── Install system fonts for Chrome ───────────────────────────────────────────
 EMOJI_FONT="$DIR/starembedder_web/static/fonts/NotoColorEmoji.ttf"
 FONT_DIR="$HOME/.local/share/fonts"
+mkdir -p "$FONT_DIR"
+
+# Noto Color Emoji (user-level, already vendored)
 if [[ -f "$EMOJI_FONT" ]] && ! fc-list | grep -q "Noto Color Emoji"; then
     log "Installing Noto Color Emoji font..."
-    mkdir -p "$FONT_DIR"
     cp "$EMOJI_FONT" "$FONT_DIR/"
     fc-cache -f 2>/dev/null
+fi
+
+# Unifont — covers every BMP Unicode character; used as CSS last-resort fallback
+if command -v apt-get >/dev/null 2>&1 && ! fc-list | grep -qi "unifont"; then
+    log "Installing Unifont (broad Unicode coverage)..."
+    if [[ "$EUID" -eq 0 ]]; then
+        DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-unifont 2>&1 | prefix_output "$DIM" "unifont" \
+            || log "${YELLOW}WARNING:${RESET} fonts-unifont install failed"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-unifont 2>&1 | prefix_output "$DIM" "unifont" \
+            || log "${YELLOW}WARNING:${RESET} fonts-unifont install failed"
+    fi
 fi
 
 # ── Database migrations ───────────────────────────────────────────────────────
