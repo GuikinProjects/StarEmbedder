@@ -80,7 +80,7 @@ log "Package manager   : $PKG"
 # ── Auto-update ───────────────────────────────────────────────────────────────
 if [[ -d "$DIR/.git" ]] && [[ "${AUTO_UPDATE}" == "1" ]]; then
     log "Pulling latest changes..."
-    git -C "$DIR" pull || fail "git pull failed"
+    git -c safe.directory="$DIR" -C "$DIR" pull || fail "git pull failed"
 fi
 
 # ── Pelican: inject/remove extra packages ─────────────────────────────────────
