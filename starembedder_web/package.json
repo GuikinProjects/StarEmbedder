@@ -40,6 +40,8 @@
 	"dependencies": {
 		"@skyra/discord-components-core": "^4.0.2",
 		"@sveltejs/adapter-node": "^5.5.3",
+		"@twemoji/api": "^17.0.2",
+		"emojibase-data": "^17.0.0",
 		"lit": "^3.3.2",
 		"puppeteer": "^24.37.5"
 	}
