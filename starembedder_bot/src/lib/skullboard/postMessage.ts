@@ -9,6 +9,7 @@
 import { container } from '@sapphire/pieces';
 import { envParseString } from '@skyra/env-utilities';
 import { type Attachment, type Guild, type Message, StickerFormatType } from 'discord.js';
+import { eq, and } from 'drizzle-orm';
 import { skulledMessages } from '../db/schema';
 
 // ─── Render payload types (shared shape with starembedder_web) ────────────────
@@ -275,38 +276,17 @@ async function requestRenderPng(payload: RenderPayload, webServerUrl: string): P
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
 
-export interface SkullboardPostOptions {
-	/** Fully-fetched source message. */
-	message: Message;
-	/** Cached guild the message belongs to. */
-	guild: Guild;
-	/** Skullboard channel snowflake from the guild config. */
-	skullboardChannelId: string;
-	/** Configured skull emoji for this guild. */
-	skullEmoji: string;
-	/** Reaction count to display on the embed. */
-	reactionCount: number;
-	/** When true, skip reading from and writing to the skulled_messages DB table. */
-	skipDb?: boolean;
-}
-
 /**
- * Run the full skullboard pipeline for a message:
- * build the render payload, request a PNG from the web server, post to the
- * skullboard channel, and persist the record to the database.
- *
- * @returns The snowflake of the message posted to the skullboard channel.
+ * Build a RenderPayload from a fully-fetched Discord message.
+ * Shared by executeSkullboardPost and updateSkullboardPost.
  */
-export async function executeSkullboardPost(options: SkullboardPostOptions): Promise<string> {
-	const { message, guild, skullboardChannelId, skullEmoji, reactionCount, skipDb = false } = options;
-	const { db, logger } = container;
-
-	// Fetch skullboard channel
-	const skullboardChannel =
-		guild.channels.cache.get(skullboardChannelId) ?? (await guild.channels.fetch(skullboardChannelId).catch(() => null));
-	if (!skullboardChannel || !skullboardChannel.isTextBased() || !('send' in skullboardChannel)) {
-		throw new Error(`Skullboard channel ${skullboardChannelId} is inaccessible.`);
-	}
+export async function buildRenderPayload(options: {
+	message: Message;
+	guild: Guild;
+	skullEmoji: string;
+	reactionCount: number;
+}): Promise<RenderPayload> {
+	const { message, guild, skullEmoji, reactionCount } = options;
 
 	// ── Resolve mentions ──────────────────────────────────────────────────────
 	const content = message.content ?? '';
@@ -387,7 +367,6 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 	}
 
 	// ── Process embeds ────────────────────────────────────────────────────────
-	// Split Discord auto-embeds (type=image/gifv/video) from rich embeds.
 	const autoEmbedAttachments: RenderAttachment[] = [];
 	const richEmbeds: typeof message.embeds = [];
 	const autoEmbedCanonicalUrls = new Set<string>();
@@ -416,12 +395,7 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 			} else {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const rawData = e.data as any;
-
-				// Prefer URLs with auth tokens (image.url / image.proxy_url) over bare e.url.
-				// Discord embeds of type "image" store the authenticated URL in .image.url
-				// while .url is the canonical bare URL without tokens.
 				url = rawData?.image?.url ?? rawData?.image?.proxy_url ?? e.image?.url ?? e.image?.proxyURL ?? e.url;
-
 				const rawUrl = url ?? '';
 				contentType = /\.gif/i.test(rawUrl) ? 'image/gif' : 'image/webp';
 				width = rawData?.image?.width ?? e.image?.width ?? undefined;
@@ -442,26 +416,21 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 		}
 	}
 
-	// ── Refresh expired Discord CDN URLs in a single batch ──────────────────────
+	// ── Refresh expired Discord CDN URLs ──────────────────────────────────────
 	const regularAttachments = [...message.attachments.values()].map(attachmentToRender);
-
-	const urlsToRefresh = [
-		...autoEmbedAttachments.map((a) => a.url),
-		...regularAttachments.map((a) => a.url)
-	];
+	const urlsToRefresh = [...autoEmbedAttachments.map((a) => a.url), ...regularAttachments.map((a) => a.url)];
 	const refreshedUrlMap = await refreshDiscordUrls(urlsToRefresh);
-
 	for (const att of autoEmbedAttachments) att.url = refreshedUrlMap.get(att.url) ?? att.url;
 	for (const att of regularAttachments) att.url = refreshedUrlMap.get(att.url) ?? att.url;
 
-	// Strip bare URL-only content when it caused an auto-embed (Discord hides it).
+	// Strip bare URL-only content when it caused an auto-embed.
 	const trimmedContent = content.trim();
 	const strippedContent =
 		autoEmbedCanonicalUrls.size > 0 && /^https?:\/\/\S+$/.test(trimmedContent) && autoEmbedCanonicalUrls.has(trimmedContent.split('?')[0])
 			? ''
 			: content;
 
-	const payload: RenderPayload = {
+	return {
 		message: {
 			id: message.id,
 			author: {
@@ -515,10 +484,48 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 		},
 		resolved: { users: resolvedUsers, roles: resolvedRoles, channels: resolvedChannels }
 	};
+}
+
+export interface SkullboardPostOptions {	/** Fully-fetched source message. */
+	message: Message;
+	/** Cached guild the message belongs to. */
+	guild: Guild;
+	/** Skullboard channel snowflake from the guild config. */
+	skullboardChannelId: string;
+	/** Configured skull emoji for this guild. */
+	skullEmoji: string;
+	/** Reaction count to display on the embed. */
+	reactionCount: number;
+	/** When true, skip reading from and writing to the skulled_messages DB table. */
+	skipDb?: boolean;
+}
+
+/**
+ * Run the full skullboard pipeline for a message:
+ * build the render payload, request a PNG from the web server, post to the
+ * skullboard channel, and persist the record to the database.
+ *
+ * @returns The snowflake of the message posted to the skullboard channel.
+ */
+export async function executeSkullboardPost(options: SkullboardPostOptions): Promise<string> {
+	const { message, guild, skullboardChannelId, skullEmoji, reactionCount, skipDb = false } = options;
+	const { db, logger } = container;
+
+	// Fetch skullboard channel
+	const skullboardChannel =
+		guild.channels.cache.get(skullboardChannelId) ?? (await guild.channels.fetch(skullboardChannelId).catch(() => null));
+	if (!skullboardChannel || !skullboardChannel.isTextBased() || !('send' in skullboardChannel)) {
+		throw new Error(`Skullboard channel ${skullboardChannelId} is inaccessible.`);
+	}
+
+	const payload = await buildRenderPayload({ message, guild, skullEmoji, reactionCount });
 
 	// ── Request render from web server ────────────────────────────────────────
 	const webServerUrl = envParseString('WEB_SERVER_URL');
 	const pngBuffer = await requestRenderPng(payload, webServerUrl);
+
+	const author = message.author!;
+	const member = message.member ?? (await guild.members.fetch(author.id).catch(() => null));
 
 	// ── Post to skullboard channel ────────────────────────────────────────────
 	const skullboardMessage = await skullboardChannel.send({
@@ -562,11 +569,110 @@ export async function executeSkullboardPost(options: SkullboardPostOptions): Pro
 			.run();
 
 		logger.info(
-			`Skullboard: Posted message ${message.id} to #${channelName} in guild ${guild.id}. DB entry ID: ${dbResult.lastInsertRowid}`
+			`Skullboard: Posted message ${message.id} to #${payload.channel.name} in guild ${guild.id}. DB entry ID: ${dbResult.lastInsertRowid}`
 		);
 	} else {
-		logger.info(`Skullboard: Posted message ${message.id} to #${channelName} in guild ${guild.id} (force-post, DB skipped).`);
+		logger.info(`Skullboard: Posted message ${message.id} to #${payload.channel.name} in guild ${guild.id} (force-post, DB skipped).`);
 	}
 
 	return skullboardMessage.id;
+}
+
+// ─── Update pipeline ──────────────────────────────────────────────────────────
+
+export interface SkullboardUpdateOptions {
+	/** Snowflake of the original message OR the skullboard repost. */
+	messageId: string;
+	guild: Guild;
+	skullboardChannelId: string;
+	skullEmoji: string;
+}
+
+export interface SkullboardUpdateResult {
+	/** 'updated' — the skullboard post was edited in-place.
+	 *  'not_found' — no DB record exists for this message.
+	 *  'skullboard_deleted' — DB record exists but the skullboard post is gone.
+	 */
+	status: 'updated' | 'not_found' | 'skullboard_deleted';
+	skullboardMessageId?: string;
+}
+
+/**
+ * Re-renders an existing skullboard post and edits it in place.
+ * Accepts either the original message ID or the skullboard message ID.
+ */
+export async function updateSkullboardPost(options: SkullboardUpdateOptions): Promise<SkullboardUpdateResult> {
+	const { messageId, guild, skullboardChannelId, skullEmoji } = options;
+	const { db, logger } = container;
+
+	// Look up DB record by original OR skullboard message ID
+	const record =
+		db.select().from(skulledMessages).where(and(eq(skulledMessages.guildId, guild.id), eq(skulledMessages.originalMessageId, messageId))).get() ??
+		db.select().from(skulledMessages).where(and(eq(skulledMessages.guildId, guild.id), eq(skulledMessages.skullboardMessageId, messageId))).get();
+
+	if (!record || !record.skullboardMessageId) return { status: 'not_found' };
+
+	// Fetch skullboard channel
+	const skullboardChannel =
+		guild.channels.cache.get(skullboardChannelId) ?? (await guild.channels.fetch(skullboardChannelId).catch(() => null));
+	if (!skullboardChannel || !skullboardChannel.isTextBased() || !('messages' in skullboardChannel)) {
+		return { status: 'not_found' };
+	}
+
+	// Fetch existing skullboard post
+	const skullboardPost = await skullboardChannel.messages.fetch(record.skullboardMessageId).catch(() => null);
+	if (!skullboardPost) return { status: 'skullboard_deleted' };
+
+	// Fetch the original message
+	const originalChannel =
+		guild.channels.cache.get(record.originalChannelId) ?? (await guild.channels.fetch(record.originalChannelId).catch(() => null));
+	if (!originalChannel || !originalChannel.isTextBased() || !('messages' in originalChannel)) {
+		return { status: 'not_found' };
+	}
+
+	const originalMessage = await originalChannel.messages.fetch({ message: record.originalMessageId, force: true }).catch(() => null);
+	if (!originalMessage) return { status: 'not_found' };
+
+	// Get current reaction count
+	const skullReaction = originalMessage.reactions.cache.find((r) => r.emoji.name === skullEmoji);
+	const reactionCount = skullReaction?.count ?? record.reactionCount;
+
+	// Re-render
+	const webServerUrl = envParseString('WEB_SERVER_URL');
+	const payload = await buildRenderPayload({ message: originalMessage, guild, skullEmoji, reactionCount });
+	const pngBuffer = await requestRenderPng(payload, webServerUrl);
+
+	const member = originalMessage.member ?? (await guild.members.fetch(originalMessage.author.id).catch(() => null));
+
+	// Edit the existing skullboard post
+	await skullboardPost.edit({
+		...(pngBuffer ? { files: [{ attachment: pngBuffer, name: 'skullboard.png' }] } : { files: [] }),
+		embeds: [
+			{
+				author: {
+					name: member?.displayName ?? originalMessage.author.displayName,
+					icon_url: member?.displayAvatarURL({ size: 64 }) ?? originalMessage.author.displayAvatarURL({ size: 64 })
+				},
+				color: 0xffd700,
+				...(pngBuffer ? { image: { url: 'attachment://skullboard.png' } } : {}),
+				fields: [
+					{ name: 'Author', value: `<@${originalMessage.author.id}> (${member?.displayName ?? originalMessage.author.displayName})`, inline: true },
+					{ name: 'Channel', value: `<#${originalMessage.channelId}>`, inline: true },
+					{ name: 'Jump to Message', value: `[Click here](${originalMessage.url})`, inline: true }
+				],
+				timestamp: originalMessage.createdAt.toISOString()
+			}
+		]
+	});
+
+	// Update DB reaction count
+	await db
+		.update(skulledMessages)
+		.set({ reactionCount })
+		.where(and(eq(skulledMessages.guildId, guild.id), eq(skulledMessages.originalMessageId, record.originalMessageId)))
+		.run();
+
+	logger.info(`Skullboard: Updated post ${record.skullboardMessageId} for original ${record.originalMessageId} in guild ${guild.id}.`);
+
+	return { status: 'updated', skullboardMessageId: record.skullboardMessageId };
 }
