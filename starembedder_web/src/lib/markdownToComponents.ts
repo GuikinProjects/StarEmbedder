@@ -3,6 +3,32 @@
  * Adapted from https://github.com/sapphiredev/resource-webhooks/blob/main/lib/utils/MarkdownToDiscordWebComponents.ts
  * Modified to remove Nuxt composable dependency and accept resolved mention maps.
  */
+import emojibaseData from 'emojibase-data/en/compact.json';
+import joypixelsShortcodes from 'emojibase-data/en/shortcodes/joypixels.json';
+import iamcalShortcodes from 'emojibase-data/en/shortcodes/iamcal.json';
+import githubShortcodes from 'emojibase-data/en/shortcodes/github.json';
+
+/**
+ * Merged shortcode → Unicode map built from joypixels + iamcal + github databases.
+ * Covers the full set of shortcodes Discord supports (7000+ entries).
+ */
+const SHORTCODE_MAP: Map<string, string> = (() => {
+	const hexToUnicode = new Map<string, string>();
+	for (const entry of emojibaseData as Array<{ hexcode: string; unicode: string; skins?: Array<{ hexcode: string; unicode: string }> }>) {
+		hexToUnicode.set(entry.hexcode, entry.unicode);
+		for (const skin of entry.skins ?? []) hexToUnicode.set(skin.hexcode, skin.unicode);
+	}
+	const map = new Map<string, string>();
+	for (const db of [joypixelsShortcodes, iamcalShortcodes, githubShortcodes] as Array<Record<string, string | string[]>>) {
+		for (const [hex, codes] of Object.entries(db)) {
+			const uni = hexToUnicode.get(hex);
+			if (!uni) continue;
+			const list = Array.isArray(codes) ? codes : [codes];
+			for (const code of list) if (!map.has(code)) map.set(code, uni);
+		}
+	}
+	return map;
+})();
 
 export interface ResolvedMentions {
 	users: Record<string, string>;
@@ -20,8 +46,54 @@ function escapeHtml(str: string): string {
 }
 
 const CUSTOM_EMOJI_RE = /<(a?):(\w+):(\d+)>/g;
-// Matches Unicode emoji presented as emoji (Emoji_Presentation) or ZWJ sequences / variation selectors
-const UNICODE_EMOJI_RE = /\p{Extended_Pictographic}(\u200D\p{Extended_Pictographic})*/gu;
+// Matches Unicode emoji: single pictographic with optional FE0F, plus any ZWJ chains.
+// The trailing \uFE0F? on each segment ensures ZWJ sequences like 🏃‍➡️ are captured whole.
+const UNICODE_EMOJI_RE = /\p{Extended_Pictographic}\uFE0F?((\u200D\p{Extended_Pictographic}\uFE0F?)+)?/gu;
+// Matches :shortcode: style emoji (Discord text emoji)
+const SHORTCODE_RE = /:([a-zA-Z0-9_+-]+):/g;
+
+/**
+ * Converts a Unicode emoji string to a Twemoji CDN URL.
+ * Mirrors Twemoji's toCodePoint logic: strip \uFE0F from non-ZWJ sequences.
+ */
+function twemojiUrl(emoji: string): string {
+	const hasZWJ = emoji.includes('\u200D');
+	const normalized = hasZWJ ? emoji : emoji.replace(/\uFE0F/g, '');
+	const codepoint = [...normalized].map((c) => c.codePointAt(0)!.toString(16)).join('-');
+	return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.2/assets/svg/${codepoint}.svg`;
+}
+
+function twemojiImg(emoji: string, size: number, margin = '0 1px'): string {
+	const url = twemojiUrl(emoji);
+	return `<img src="${url}" alt="${escapeHtml(emoji)}" style="width:${size}px;height:${size}px;vertical-align:middle;display:inline-block;margin:${margin};">`;
+}
+
+/**
+ * Like String.replace() but only applies the replacement to plain text portions,
+ * skipping anything inside an HTML tag (< ... >).  This prevents double-processing
+ * emoji that already appear inside generated <img alt="..."> attributes.
+ */
+function replaceTextOnly(
+	html: string,
+	regex: RegExp,
+	replacer: (match: string, ...args: string[]) => string
+): string {
+	const parts: string[] = [];
+	let last = 0;
+	const tagRe = /<[^>]*>/g;
+	let m: RegExpExecArray | null;
+	while ((m = tagRe.exec(html)) !== null) {
+		if (m.index > last) {
+			parts.push(html.slice(last, m.index).replace(regex, replacer));
+		}
+		parts.push(m[0]);
+		last = m.index + m[0].length;
+	}
+	if (last < html.length) {
+		parts.push(html.slice(last).replace(regex, replacer));
+	}
+	return parts.join('');
+}
 
 /**
  * Determines whether the entire message is emoji-only (custom + unicode, no other text).
@@ -31,12 +103,17 @@ function detectJumbo(content: string): boolean {
 	const stripped = content
 		.replace(CUSTOM_EMOJI_RE, '')
 		.replace(UNICODE_EMOJI_RE, '')
+		.replace(SHORTCODE_RE, (_, name) => (SHORTCODE_MAP.has(name) ? '' : `:${name}:`))
 		.replace(/\s/g, '');
 	if (stripped.length > 0) return false;
 
+	const shortcodeCount = [...content.matchAll(new RegExp(SHORTCODE_RE.source, 'g'))].filter(
+		([, name]) => SHORTCODE_MAP.has(name)
+	).length;
 	const count =
 		[...content.matchAll(new RegExp(CUSTOM_EMOJI_RE.source, 'g'))].length +
-		[...content.matchAll(new RegExp(UNICODE_EMOJI_RE.source, 'gu'))].length;
+		[...content.matchAll(new RegExp(UNICODE_EMOJI_RE.source, 'gu'))].length +
+		shortcodeCount;
 	return count > 0 && count <= 30;
 }
 
@@ -72,7 +149,8 @@ function processInline(text: string, resolved: ResolvedMentions, jumbo = false):
 	// Timestamps: <t:unix:format>
 	result = result.replace(/<t:(\d+)(?::[tTdDfFR])?>/g, () => '<discord-time></discord-time>');
 
-	// Custom / animated emojis: <:name:id> or <a:name:id>
+	// Custom / animated emojis: <:name:id> or <a:name:id> — must run BEFORE shortcode processing
+	// so that <:shrug:123> isn't split by the :shrug: shortcode match
 	result = result.replace(/<(a?):(\w+):(\d+)>/g, (_full, animated, name, id) => {
 		const ext = animated ? 'gif' : 'webp';
 		const cdnSize = jumbo ? 64 : 32;
@@ -83,6 +161,18 @@ function processInline(text: string, resolved: ResolvedMentions, jumbo = false):
 			: `width:${displaySize}px;height:${displaySize}px;vertical-align:middle;display:inline-block;margin:0 1px;`;
 		return `<img src="${url}" alt=":${escapeHtml(name)}:" title=":${escapeHtml(name)}:" style="${style}">`;
 	});
+
+	// Shortcode emojis: :8ball: :thumbsup: etc. — resolve via SHORTCODE_MAP then render as Twemoji
+	// Must use replaceTextOnly so the regex doesn't fire inside alt/title attributes of custom emoji imgs
+	{
+		const size = jumbo ? 48 : 22;
+		const margin = jumbo ? '0 2px' : '0 1px';
+		result = replaceTextOnly(result, /:([a-zA-Z0-9_+-]+):/g, (full, name) => {
+			const emoji = SHORTCODE_MAP.get(name);
+			if (!emoji) return full;
+			return twemojiImg(emoji, size, margin);
+		});
+	}
 
 	// Multiline code blocks: ```lang\n...\n```
 	result = result.replace(/```(\w*)\n?([\s\S]*?)```/g, (_full, lang, code) => {
@@ -140,13 +230,14 @@ function processInline(text: string, resolved: ResolvedMentions, jumbo = false):
 		return `${pre}<discord-link href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</discord-link>`;
 	});
 
-	// Unicode emoji jumbo: wrap in a sized span so they display large
-	if (jumbo) {
-		result = result.replace(
-			/\p{Extended_Pictographic}(\u200D\p{Extended_Pictographic})*/gu,
-			(emoji) => {
-				return `<span style="font-size:48px;line-height:1;vertical-align:middle;">${emoji}</span>`;
-			}
+	// Unicode emoji → Twemoji images (only in text nodes, not inside generated HTML tags)
+	{
+		const size = jumbo ? 48 : 22;
+		const margin = jumbo ? '0 2px' : '0 1px';
+		result = replaceTextOnly(
+			result,
+			/\p{Extended_Pictographic}\uFE0F?((\u200D\p{Extended_Pictographic}\uFE0F?)+)?/gu,
+			(emoji) => twemojiImg(emoji, size, margin)
 		);
 	}
 
