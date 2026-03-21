@@ -79,7 +79,23 @@ async function proxyPayloadUrls(
 	// Attachments — remove any that fail to download
 	const proxiedAttachments = await Promise.all(
 		payload.message.attachments.map(async (att) => {
-			const proxy = await proxyUrl(att.url, host);
+			// Cap image dimensions before fetching: the render page constrains display
+			// to 520×350 CSS px. Requesting anything larger than 1040×700 from Discord
+			// CDN wastes bandwidth and causes Chrome to OOM on huge images (e.g. 22 MB).
+			// Discord attachment CDN supports &width=N&height=N for server-side resizing.
+			let fetchUrl = att.url;
+			if (DISCORD_CDN.test(fetchUrl) && att.width && att.height) {
+				const MAX_W = 1040;
+				const MAX_H = 700;
+				if (att.width > MAX_W || att.height > MAX_H) {
+					const ratio = Math.min(MAX_W / att.width, MAX_H / att.height);
+					const w = Math.round(att.width * ratio);
+					const h = Math.round(att.height * ratio);
+					const sep = fetchUrl.includes('?') ? '&' : '?';
+					fetchUrl = `${fetchUrl}${sep}width=${w}&height=${h}`;
+				}
+			}
+			const proxy = await proxyUrl(fetchUrl, host);
 			if (!proxy) return null; // image gone, remove attachment
 			att.url = proxy;
 			return att;
