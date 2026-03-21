@@ -173,11 +173,19 @@ async function tryScreenshot(url: string): Promise<Buffer> {
 }
 
 /**
- * Screenshot a discord-messages element at the given URL.
- * Returns the PNG as a Buffer.
- * Retries up to MAX_RETRIES times on transient failures (timeouts, crashes).
+ * Global serialization queue: only one screenshot runs at a time.
+ *
+ * The bot retries a render request every ~15 s while the web server may still
+ * be processing the previous attempt (Chrome can take up to 30 s per try).
+ * Without this lock each concurrent request spawns its own Chrome process,
+ * and the container OOMs as multiple Chromiums fight for RAM.
+ *
+ * Incoming requests simply chain onto the queue and run after the current
+ * one finishes (or fails), so Chrome is never launched more than once.
  */
-export async function screenshot(url: string): Promise<Buffer> {
+let screenshotQueue: Promise<void> = Promise.resolve();
+
+async function screenshotImpl(url: string): Promise<Buffer> {
 	let lastError: unknown;
 
 	for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -201,4 +209,20 @@ export async function screenshot(url: string): Promise<Buffer> {
 	}
 
 	throw lastError;
+}
+
+/**
+ * Screenshot a discord-messages element at the given URL.
+ * Returns the PNG as a Buffer.
+ * Retries up to MAX_RETRIES times on transient failures (timeouts, crashes).
+ * All concurrent calls are serialized — only one Chrome process runs at a time.
+ */
+export function screenshot(url: string): Promise<Buffer> {
+	const task = screenshotQueue.then(() => screenshotImpl(url));
+	// Swallow errors so a failed task doesn't poison the queue for future callers.
+	screenshotQueue = task.then(
+		() => { },
+		() => { }
+	);
+	return task;
 }

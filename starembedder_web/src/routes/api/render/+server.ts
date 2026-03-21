@@ -11,6 +11,35 @@ const DISCORD_CDN = /^https?:\/\/(?:cdn|media)\.discordapp\.(?:com|net)\//;
 const imageCache = new Map<string, { data: Buffer; contentType: string }>();
 
 /**
+ * Cap the size of a Discord CDN image URL before downloading.
+ *
+ * - Attachment URLs (/attachments/): use `width` + `height` params (replacing any
+ *   existing values) — Discord resizes server-side, keeping aspect ratio.
+ * - All other Discord CDN URLs (avatars, icons, emojis, stickers, …): use `size`
+ *   (must be a power of 2). Replaces any existing `size` param.
+ *
+ * `maxPx` is the longest edge limit. 1024 is plenty for a 520 CSS-px wide render
+ * even at 4× deviceScaleFactor.
+ */
+function capDiscordImageSize(url: string, maxPx = 1024): string {
+	try {
+		const u = new URL(url);
+		if (u.pathname.includes('/attachments/')) {
+			// Replace any existing width/height, add our cap
+			u.searchParams.set('width', String(maxPx));
+			u.searchParams.set('height', String(maxPx));
+		} else {
+			// Round down to nearest power of 2, clamp to [16, 1024]
+			const pow2 = Math.min(1024, Math.max(16, 2 ** Math.floor(Math.log2(maxPx))));
+			u.searchParams.set('size', String(pow2));
+		}
+		return u.toString();
+	} catch {
+		return url;
+	}
+}
+
+/**
  * Pre-download a Discord CDN image and store it in the imageCache.
  * Returns a local proxy URL like `http://<host>/api/render?_img=<key>&_ext=.gif`
  * which the render page uses as the `<img>` src. This avoids:
@@ -28,19 +57,23 @@ async function proxyUrl(
 ): Promise<string | null> {
 	if (!DISCORD_CDN.test(url)) return url;
 
+	// Always cap the image size before downloading — prevents OOM on huge uploads.
+	const fetchUrl = capDiscordImageSize(url);
+
 	try {
-		const res = await fetch(url, {
+		const res = await fetch(fetchUrl, {
 			headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StarEmbedder/1.0)' }
 		});
 		if (!res.ok) {
-			console.warn(`[render] pre-download failed ${res.status} for ${url}`);
+			console.warn(`[render] pre-download failed ${res.status} for ${fetchUrl}`);
 			return null;
 		}
 		const data = Buffer.from(await res.arrayBuffer());
 		const contentType = res.headers.get('content-type') ?? 'application/octet-stream';
 
-		// Derive key from URL path to keep it deterministic
-		const key = Buffer.from(url).toString('base64url');
+		// Key off the original URL path (strip auth query params) so the same
+		// asset doesn't get cached twice when auth tokens rotate.
+		const key = Buffer.from(new URL(url).pathname).toString('base64url');
 		imageCache.set(key, { data, contentType });
 		// Auto-expire after 60s
 		setTimeout(() => imageCache.delete(key), 60_000);
@@ -79,23 +112,7 @@ async function proxyPayloadUrls(
 	// Attachments — remove any that fail to download
 	const proxiedAttachments = await Promise.all(
 		payload.message.attachments.map(async (att) => {
-			// Cap image dimensions before fetching: the render page constrains display
-			// to 520×350 CSS px. Requesting anything larger than 1040×700 from Discord
-			// CDN wastes bandwidth and causes Chrome to OOM on huge images (e.g. 22 MB).
-			// Discord attachment CDN supports &width=N&height=N for server-side resizing.
-			let fetchUrl = att.url;
-			if (DISCORD_CDN.test(fetchUrl) && att.width && att.height) {
-				const MAX_W = 1040;
-				const MAX_H = 700;
-				if (att.width > MAX_W || att.height > MAX_H) {
-					const ratio = Math.min(MAX_W / att.width, MAX_H / att.height);
-					const w = Math.round(att.width * ratio);
-					const h = Math.round(att.height * ratio);
-					const sep = fetchUrl.includes('?') ? '&' : '?';
-					fetchUrl = `${fetchUrl}${sep}width=${w}&height=${h}`;
-				}
-			}
-			const proxy = await proxyUrl(fetchUrl, host);
+			const proxy = await proxyUrl(att.url, host);
 			if (!proxy) return null; // image gone, remove attachment
 			att.url = proxy;
 			return att;

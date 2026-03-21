@@ -179,7 +179,7 @@ async function refreshDiscordUrls(urls: string[]): Promise<Map<string, string>> 
 	return map;
 }
 
-const RENDER_FETCH_TIMEOUT_MS = 15_000;
+const RENDER_FETCH_TIMEOUT_MS = 45_000;
 const RENDER_FETCH_RETRIES = 2;
 
 function sleep(ms: number) {
